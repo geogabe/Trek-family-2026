@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trek Famille OT Guillestre — Arvieux · Furfande · Brunissard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --night:#0d100a; --bark:#141a0e; --bark2:#1c2614;
+    --stone:#edeae0; --muted:rgba(237,234,224,.50); --dim:rgba(237,234,224,.24);
+    --d1:#5a9e6a; --d2:#c97d2e; --d3:#5b8fa8; --d4:#9b7bb5;
+    --car:#e8b84b; --green:#7dbc6e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--night);color:var(--stone);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  header{background:var(--bark);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+  .ht{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--stone);}
+  .hs{font-size:11px;color:var(--muted);margin-top:1px;font-weight:300;}
+  .legend{display:flex;gap:7px;}
+  .leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:20px;border:.5px solid transparent;transition:all .15s;}
+  .leg.on{border-color:rgba(255,255,255,.15);color:var(--stone);}
+  .ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+  .main{display:flex;flex:1;overflow:hidden;}
+  .sidebar{width:326px;flex-shrink:0;background:var(--bark);overflow-y:auto;border-right:1px solid rgba(255,255,255,.05);}
+  .sidebar::-webkit-scrollbar{width:3px;}
+  .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+  /* OT BANNER */
+  .ot-banner{margin:10px 14px;padding:9px 12px;background:rgba(232,184,75,.08);border:.5px solid rgba(232,184,75,.35);border-radius:8px;display:flex;gap:8px;align-items:flex-start;}
+  .ot-icon{font-size:16px;flex-shrink:0;}
+  .ot-text{font-size:11px;color:rgba(237,234,224,.7);line-height:1.55;}
+  .ot-text strong{color:var(--car);font-weight:500;}
+
+  /* LEGEND car vs foot */
+  .mode-legend{display:flex;gap:10px;margin:8px 14px 0;padding:7px 10px;background:rgba(255,255,255,.03);border-radius:6px;}
+  .ml-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+  .ml-line{width:24px;height:3px;border-radius:2px;}
+  .ml-dash{width:24px;height:0;border-top:2px dashed;border-radius:2px;}
+
+  /* DAY BLOCKS */
+  .db{border-bottom:1px solid rgba(255,255,255,.05);transition:opacity .2s;}
+  .db.hidden{opacity:.28;}
+  .dh{padding:11px 15px 7px;display:flex;gap:9px;cursor:pointer;}
+  .dh:hover{background:rgba(255,255,255,.03);}
+  .dnum{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;font-family:'Playfair Display',serif;font-style:italic;margin-top:2px;}
+  .dn{flex:1;}
+  .dname{font-size:12px;font-weight:500;color:var(--stone);line-height:1.3;}
+  .ddate{font-size:10px;color:var(--muted);margin-top:2px;font-weight:300;}
+
+  /* CAR TRANSFER */
+  .car-transfer{margin:0 15px 8px;padding:7px 11px;background:rgba(232,184,75,.07);border:.5px solid rgba(232,184,75,.28);border-radius:6px;display:flex;align-items:center;gap:8px;}
+  .ct-icon{font-size:14px;flex-shrink:0;}
+  .ct-text{font-size:10px;color:rgba(237,234,224,.65);line-height:1.5;}
+  .ct-text strong{color:var(--car);font-weight:500;}
+
+  /* STATS */
+  .vstats{display:flex;gap:0;padding:0 15px 7px 50px;}
+  .vst{display:flex;flex-direction:column;gap:1px;border-right:.5px solid rgba(255,255,255,.07);padding:0 10px 0 0;margin-right:10px;}
+  .vst:last-child{border:none;}
+  .vstv{font-size:12px;font-weight:600;color:var(--stone);}
+  .vstl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;}
+  .vsrc{font-size:8px;color:rgba(125,188,110,.7);margin-top:1px;}
+
+  /* PROFILE */
+  .prof{margin:0 15px 8px 50px;background:rgba(255,255,255,.03);border-radius:5px;padding:7px 10px;}
+  .prof-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .prof-bars{display:flex;align-items:flex-end;gap:2px;height:26px;}
+  .pb{flex:1;border-radius:2px 2px 0 0;}
+  .prof-pts{display:flex;gap:2px;margin-top:3px;}
+  .pp{flex:1;font-size:8px;color:var(--dim);text-align:center;line-height:1.3;}
+
+  /* STOPS */
+  .stops{padding:0 15px 10px;}
+  .stop{display:flex;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;transition:background .12s;}
+  .stop:hover{background:rgba(255,255,255,.06);}
+  .stop.active{background:rgba(255,255,255,.09);}
+  .sv{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;}
+  .sico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+  .sico.sq{border-radius:5px;font-size:12px;width:22px;height:22px;}
+  .sconn{width:1px;flex:1;min-height:8px;margin-top:3px;opacity:.2;}
+  .si{flex:1;padding-top:1px;}
+  .sname{font-size:11px;font-weight:500;color:var(--stone);line-height:1.3;}
+  .sdetail{font-size:10px;color:var(--muted);margin-top:1px;font-weight:300;line-height:1.4;}
+  .salt{font-size:10px;color:var(--dim);margin-top:1px;font-style:italic;font-family:'Playfair Display',serif;}
+  .rbdg{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:3px;margin-top:4px;font-weight:500;}
+
+  .tip{margin:0 15px 10px 50px;padding:7px 10px;border-radius:5px;border-left:2px solid;font-size:10px;color:rgba(237,234,224,.62);line-height:1.5;font-weight:300;}
+
+  /* KIDS */
+  .km{margin:0 15px 10px 50px;}
+  .km-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+  .km-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+  .km-fill{height:100%;border-radius:3px;}
+  .km-cap{font-size:9px;color:var(--muted);margin-top:3px;}
+
+  #map{flex:1;background:var(--night);}
+
+  .leaflet-popup-content-wrapper{background:var(--bark2);color:var(--stone);border-radius:10px;border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 28px rgba(0,0,0,.6);padding:0;overflow:hidden;}
+  .leaflet-popup-tip{background:var(--bark2);}
+  .leaflet-popup-content{margin:0;width:220px!important;}
+  .pop{padding:13px 15px;}
+  .ptag{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:500;margin-bottom:5px;}
+  .pname{font-family:'Playfair Display',serif;font-size:14px;color:var(--stone);margin-bottom:3px;line-height:1.3;}
+  .psub{font-size:11px;color:var(--muted);font-weight:300;line-height:1.5;}
+  .pbdg{margin-top:7px;padding:4px 9px;border-radius:4px;font-size:10px;font-weight:500;}
+
+  .bbar{background:rgba(13,16,10,.95);border-top:1px solid rgba(255,255,255,.05);padding:7px 18px;display:flex;gap:14px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+  .bs{display:flex;flex-direction:column;gap:1px;}
+  .bsv{font-size:13px;font-weight:500;color:var(--stone);font-family:'Playfair Display',serif;}
+  .bsl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;}
+  .bdiv{width:1px;height:24px;background:rgba(255,255,255,.07);}
+  .alert{margin-left:auto;font-size:10px;color:var(--green);font-weight:500;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="ht">Plan OT Guillestre — Arvieux · Rochebrune · Furfande · Brunissard</div>
+    <div class="hs">4 jours · 3 nuits · 7–10 août 2026 · Itinéraire semi-voituré · Famille 5 · Max 3h/jour à pied</div>
+  </div>
+  <div class="legend">
+    <div class="leg on" onclick="tog(1,this)" id="l1"><div class="ldot" style="background:var(--d1)"></div>J1</div>
+    <div class="leg on" onclick="tog(2,this)" id="l2"><div class="ldot" style="background:var(--d2)"></div>J2</div>
+    <div class="leg on" onclick="tog(3,this)" id="l3"><div class="ldot" style="background:var(--d3)"></div>J3</div>
+    <div class="leg on" onclick="tog(4,this)" id="l4"><div class="ldot" style="background:var(--d4)"></div>J4</div>
+  </div>
+</header>
+
+<div class="main">
+<div class="sidebar">
+
+  <div class="ot-banner">
+    <div class="ot-icon">🏔</div>
+    <div class="ot-text"><strong>Plan conseillé par l'OT de Guillestre</strong> — La voiture sert de navette entre les parkings pour raccourcir chaque journée de marche. Le génie de ce plan : jamais plus de <strong>3h de marche</strong> par jour, les enfants arrivent contents !</div>
+  </div>
+  <div class="mode-legend">
+    <div class="ml-item"><div class="ml-line" style="background:var(--d1)"></div>À pied</div>
+    <div class="ml-item"><div class="ml-dash" style="border-color:var(--car)"></div>En voiture (navette)</div>
+    <div class="ml-item"><div class="ml-line" style="background:rgba(255,255,255,.2)"></div>À pied retour</div>
+  </div>
+
+  <!-- JOUR 1 -->
+  <div class="db" id="db1" style="border-top:1px solid rgba(255,255,255,.05)">
+    <div class="dh" onclick="fly([44.740,6.722],12)">
+      <div class="dnum" style="background:rgba(90,158,106,.22);color:var(--d1)">1</div>
+      <div class="dn">
+        <div class="dname">Arvieux → Lac de Roue → Grand Rochebrune</div>
+        <div class="ddate">7 août · Mise en jambes bucolique</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">~7 km</div><div class="vstl">Distance</div></div>
+      <div class="vst"><div class="vstv">+350 m</div><div class="vstl">Dénivelé</div></div>
+      <div class="vst"><div class="vstv">2h30–3h</div><div class="vstl">Durée réelle</div><div class="vsrc">✓ envie-de-queyras.com</div></div>
+    </div>
+    <div class="prof">
+      <div class="prof-lbl">Profil — très doux, parfait pour J1</div>
+      <div class="prof-bars">
+        <div class="pb" style="height:40%;background:var(--d1);opacity:.75"></div>
+        <div class="pb" style="height:58%;background:var(--d1);opacity:.80"></div>
+        <div class="pb" style="height:72%;background:var(--d1);opacity:.85"></div>
+        <div class="pb" style="height:80%;background:var(--d1);opacity:.88"></div>
+        <div class="pb" style="height:75%;background:var(--d1);opacity:.85"></div>
+        <div class="pb" style="height:68%;background:var(--d1)"></div>
+      </div>
+      <div class="prof-pts">
+        <div class="pp">Arvieux<br>1550m</div>
+        <div class="pp">Les<br>Maisons</div>
+        <div class="pp">Lac de<br>Roue<br>1850m ★</div>
+        <div class="pp">Souliers<br>1800m</div>
+        <div class="pp">Refuge<br>Rochebrune</div>
+        <div class="pp">Nuit 1<br>1840m</div>
+      </div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.740,6.722],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(90,158,106,.22);color:var(--d1)">🚗</div><div class="sconn" style="background:var(--d1)"></div></div>
+        <div class="si"><div class="sname">Parking Arvieux · Départ</div><div class="sdetail">Voiture garée ici. GR5 direction hameau Les Maisons, puis sentier vers le Lac de Roue.</div><div class="salt">1 550 m · 30 min de Guillestre</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.729,6.700],15);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(90,158,106,.2);color:var(--d1)">∿</div><div class="sconn" style="background:var(--d1)"></div></div>
+        <div class="si">
+          <div class="sname">Lac de Roue ⭐ — grande pause</div>
+          <div class="sdetail">"Ambiance lac canadien" entouré de mélèzes. Tables de pique-nique aménagées. Idéal pour que les enfants jouent 45 min au bord de l'eau.</div>
+          <div class="salt">1 850 m · 1h depuis Arvieux</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.725,6.685],15);act(this)">
+        <div class="sv"><div class="sico sq" style="background:var(--d1)">🏠</div></div>
+        <div class="si">
+          <div class="sname">Gîte Le Grand Rochebrune · Nuit 1</div>
+          <div class="sdetail">Hameau de Souliers. Construit années 70, entièrement rénové 2014. Alix & Victor. Cuisine maison, veau du village, fromage local. Terrasse vue Font Sancte.</div>
+          <div class="salt">1 840 m · ⭐ 4.6 · Demi-pension 52€/pers</div>
+          <div class="rbdg" style="background:rgba(90,158,106,.15);color:var(--d1)">🛏 Nuit 1 · Gîte historique GR58</div>
+          <div class="rbdg" style="background:rgba(90,158,106,.1);color:var(--d1)">📞 +33 4 92 21 86 77</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:88%;background:var(--d1)"></div></div>
+      <div class="km-cap">😊 Facile · Lac de Roue = moment magique · Arrivée en milieu d'après-midi</div>
+    </div>
+    <div class="tip" style="border-color:var(--d1);background:rgba(90,158,106,.05)">🍁 Le Lac de Roue est décrit comme "idéal pour les familles avec enfants en bas âge." Prenez le temps d'y passer 45 min — les enfants adorent les berges et les mélèzes.</div>
+  </div>
+
+  <!-- NAVETTE 1 -->
+  <div class="car-transfer">
+    <div class="ct-icon">🚗</div>
+    <div class="ct-text"><strong>Navette voiture le matin J2</strong> · Souliers → Villargaudin → Parking du Queyron · ~15 min de route. Laissez la voiture au Queyron (1950m) — c'est le départ idéal pour Furfande par le côté sud, le plus court et le plus beau.</div>
+  </div>
+
+  <!-- JOUR 2 -->
+  <div class="db" id="db2">
+    <div class="dh" onclick="fly([44.710,6.700],12)">
+      <div class="dnum" style="background:rgba(201,125,46,.22);color:var(--d2)">2</div>
+      <div class="dn">
+        <div class="dname">Parking Queyron → Refuge de Furfande</div>
+        <div class="ddate">8 août · La montée reine · vue spectaculaire</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">~5.6 km</div><div class="vstl">Distance</div></div>
+      <div class="vst"><div class="vstv">+350 m</div><div class="vstl">Dénivelé</div></div>
+      <div class="vst"><div class="vstv">2h</div><div class="vstl">Durée réelle</div><div class="vsrc">✓ refugedefurfande.com officiel</div></div>
+    </div>
+    <div class="prof">
+      <div class="prof-lbl">Profil — la montée la plus courte vers Furfande !</div>
+      <div class="prof-bars">
+        <div class="pb" style="height:48%;background:var(--d2);opacity:.75"></div>
+        <div class="pb" style="height:65%;background:var(--d2);opacity:.82"></div>
+        <div class="pb" style="height:80%;background:var(--d2);opacity:.88"></div>
+        <div class="pb" style="height:92%;background:var(--d2);opacity:.93"></div>
+        <div class="pb" style="height:100%;background:var(--d2)"></div>
+        <div class="pb" style="height:88%;background:var(--d2);opacity:.9"></div>
+      </div>
+      <div class="prof-pts">
+        <div class="pp">Parking<br>Queyron<br>1950m</div>
+        <div class="pp">Balcon<br>pins</div>
+        <div class="pp">Vallon<br>étroit</div>
+        <div class="pp">Alpages<br>ouverts</div>
+        <div class="pp">Col<br>Furfande<br>2500m</div>
+        <div class="pp">Refuge<br>2293m</div>
+      </div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.707,6.704],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.22);color:var(--d2)">P</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si"><div class="sname">Parking du Queyron · Départ J2</div><div class="sdetail">1/3 en balcon sentant les pins, 1/3 vallon étroit en lacets, 1/3 faux plat jusqu'au refuge. "L'itinéraire le plus court, idéal pour la découverte en famille."</div><div class="salt">1 950 m</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.712,6.718],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.25);color:var(--d2)">▲</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si"><div class="sname">Col de Furfande</div><div class="sdetail">Vue panoramique sur les Écrins, Font Sancte (3385m) et les crêtes de Croseras. 15 min de descente vers le refuge.</div><div class="salt">2 500 m · 1h45</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.706,6.714],14);act(this)">
+        <div class="sv"><div class="sico sq" style="background:var(--d2)">🏠</div></div>
+        <div class="si">
+          <div class="sname">Refuge de Furfande ⭐ — Nuit 2</div>
+          <div class="sdetail">"La terrasse la plus spectaculaire du Queyras." Hugo & Violaine. 90 chalets d'alpage autour. Chamois et marmottes le matin. Repas du soir copieux et local.</div>
+          <div class="salt">2 293 m · ⭐ 4.7 · 269 avis</div>
+          <div class="rbdg" style="background:rgba(201,125,46,.15);color:var(--d2)">🛏 Nuit 2 · La nuit star du trek !</div>
+          <div class="rbdg" style="background:rgba(201,125,46,.1);color:var(--d2)">📞 +33 6 16 56 23 79</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:78%;background:var(--d2)"></div></div>
+      <div class="km-cap">😊 Accessible · Seulement 2h ! · Après-midi libre au refuge pour explorer l'alpage</div>
+    </div>
+    <div class="tip" style="border-color:var(--d2);background:rgba(201,125,46,.05)">🦌 Chamois et marmottes garantis sur l'alpage de Furfande. Arrivée en début d'après-midi = temps libre pour explorer avec les enfants avant le dîner. Soirée étoilée exceptionnelle à 2293m.</div>
+  </div>
+
+  <!-- NAVETTE 2 -->
+  <div class="car-transfer">
+    <div class="ct-icon">🚗</div>
+    <div class="ct-text"><strong>Retour J3 matin</strong> · Furfande → Parking Queyron à pied (2h) · puis <strong>voiture Queyron → Le Coin d'Arvieux</strong> (~10 min) · Départ GR58 vers Brunissard depuis Le Coin.</div>
+  </div>
+
+  <!-- JOUR 3 -->
+  <div class="db" id="db3">
+    <div class="dh" onclick="fly([44.718,6.698],12)">
+      <div class="dnum" style="background:rgba(91,143,168,.22);color:var(--d3)">3</div>
+      <div class="dn">
+        <div class="dname">Furfande → Queyron (retour) + Le Coin → Brunissard</div>
+        <div class="ddate">9 août · Deux courtes marches dans la journée</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">5.6 + 4 km</div><div class="vstl">Total marche</div></div>
+      <div class="vst"><div class="vstv">-350 / +200</div><div class="vstl">Dénivelé</div></div>
+      <div class="vst"><div class="vstv">2h + 1h30</div><div class="vstl">Marche totale</div><div class="vsrc">✓ sources vérifiées</div></div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.706,6.714],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.22);color:var(--d3)">D</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si"><div class="sname">Matin · Départ Refuge Furfande</div><div class="sdetail">8h30 · Retour par le même sentier vers le Parking du Queyron. Descente facile, 2h, paysage vu sous un autre angle.</div><div class="salt">→ Parking Queyron 1950m</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.707,6.704],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(232,184,75,.3);color:var(--car)">🚗</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si"><div class="sname">🚗 Navette · Queyron → Le Coin</div><div class="sdetail">10 min de route. Le Coin est un hameau d'Arvieux sur le GR58, à mi-chemin entre Arvieux et Brunissard. Départ du sentier GR58 balisé.</div><div class="salt">Le Coin d'Arvieux · ~1550m</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.718,6.660],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.2);color:var(--d3)">→</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si"><div class="sname">GR58 · Le Coin → Brunissard</div><div class="sdetail">~1h30 de marche sur le GR58 bien balisé. Sentier en forêt de mélèzes, montée douce vers le belvédère du Coin puis Brunissard. Vraie section GR58 historique.</div><div class="salt">~4 km · +200m</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.722,6.668],14);act(this)">
+        <div class="sv"><div class="sico sq" style="background:var(--d3)">🏠</div></div>
+        <div class="si">
+          <div class="sname">Brunissard · Gîte Les Bons Enfants · Nuit 3</div>
+          <div class="sdetail">Village de ski nordique, très animé en été. Restaurant "Chez Marius" pour le dîner avec vues et spécialités. Camping de l'Izoard avec bains nordiques en option. Gîte simple et convivial.</div>
+          <div class="salt">1 800 m · GR58 · Nuit 3</div>
+          <div class="rbdg" style="background:rgba(91,143,168,.15);color:var(--d3)">🛏 Nuit 3 · Village vivant</div>
+          <div class="rbdg" style="background:rgba(91,143,168,.1);color:var(--d3)">📞 +33 4 92 46 73 85</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:82%;background:var(--d3)"></div></div>
+      <div class="km-cap">😊 Deux petites marches séparées par une pause voiture · Pas de grosse fatigue · Dîner au restaurant à Brunissard !</div>
+    </div>
+    <div class="tip" style="border-color:var(--d3);background:rgba(91,143,168,.05)">🍕 Brunissard a un vrai restaurant en été ! "Chez Marius" — pizzas au feu de bois, spécialités du Queyras. Les enfants arrivent au village, voient une pizzeria... ils vous adorent.</div>
+  </div>
+
+  <!-- NAVETTE 3 -->
+  <div class="car-transfer">
+    <div class="ct-icon">🚗</div>
+    <div class="ct-text"><strong>Retour J4 matin</strong> · Voiture laissée au Coin d'Arvieux · Brunissard → Le Coin à pied (~1h30, retour par le même GR58) OU voiture récupérée par taxi/co-voiturage si fatigue. Puis retour Arvieux → Guillestre.</div>
+  </div>
+
+  <!-- JOUR 4 -->
+  <div class="db" id="db4">
+    <div class="dh" onclick="fly([44.730,6.685],12)">
+      <div class="dnum" style="background:rgba(155,123,181,.22);color:var(--d4)">4</div>
+      <div class="dn">
+        <div class="dname">Brunissard → Le Coin (retour) → Arvieux · Fin !</div>
+        <div class="ddate">10 août · Retour tranquille · Cap Italie !</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">~4 km</div><div class="vstl">Distance</div></div>
+      <div class="vst"><div class="vstv">-200 m</div><div class="vstl">Descente</div></div>
+      <div class="vst"><div class="vstv">1h–1h30</div><div class="vstl">Durée</div><div class="vsrc">✓ GR58 balisé</div></div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.722,6.668],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(155,123,181,.22);color:var(--d4)">D</div><div class="sconn" style="background:var(--d4)"></div></div>
+        <div class="si"><div class="sname">Départ Brunissard · matin</div><div class="sdetail">Petit déjeuner copieux. Retour sur le GR58 vers Le Coin d'Arvieux. Descente tranquille, 1h–1h30, beau sous les mélèzes.</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.718,6.660],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(232,184,75,.3);color:var(--car)">🚗</div><div class="sconn" style="background:var(--d4)"></div></div>
+        <div class="si"><div class="sname">🚗 Voiture au Coin · Retour Arvieux</div><div class="sdetail">Récupération de la voiture. 5 min jusqu'à Arvieux, récupérer les affaires restées. Puis route vers Guillestre et l'Italie !</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.740,6.722],12);act(this)">
+        <div class="sv"><div class="sico" style="background:var(--d4);color:white">🏁</div></div>
+        <div class="si">
+          <div class="sname">Arvieux · Fin du trek ✓ · Cap Italie !</div>
+          <div class="sdetail">Arrivée ~11h. Fort Queyras à 5 min si les enfants ont de l'énergie. Puis Guillestre → Col du Mont-Cenis → Lac d'Orta. Arrivée en Italie pour le déjeuner !</div>
+          <div class="salt">1 550 m</div>
+          <div class="rbdg" style="background:rgba(192,69,58,.15);color:#c0453a">🇮🇹 Lac d'Orta · 2h45 via Mont-Cenis</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:96%;background:var(--d4)"></div></div>
+      <div class="km-cap">😁 Ultra-facile · 1h de descente tranquille · Arrivée avant midi · "On peut aller en Italie ?!" 🇮🇹</div>
+    </div>
+    <div class="tip" style="border-color:var(--d4);background:rgba(155,123,181,.05)">🎉 4 jours, 3 refuges, toujours moins de 3h par jour. Les enfants demandent "c'est quand le prochain trek ?" — mission accomplie !</div>
+  </div>
+
+</div><!-- sidebar -->
+<div id="map"></div>
+</div>
+
+<div class="bbar">
+  <div class="bs"><div class="bsv">~22 km</div><div class="bsl">Total à pied</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">Max 3h/j</div><div class="bsl">Étape max</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">3 navettes</div><div class="bsl">Voiture navette</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">3 nuits</div><div class="bsl">Hébergements</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv" style="color:var(--d2)">Furfande ⭐4.7</div><div class="bsl">Nuit star</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv" style="color:var(--green)">😊 6 ans ✓✓</div><div class="bsl">Plan OT validé</div></div>
+  <div class="alert">⚡ Réservez · Rochebrune +33 4 92 21 86 77 · Furfande +33 6 16 56 23 79 · Bons Enfants +33 4 92 46 73 85</div>
+</div>
+
+<script>
+const map=L.map('map',{center:[44.718,6.700],zoom:13});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:18}).addTo(map);
+const C={d1:'#5a9e6a',d2:'#c97d2e',d3:'#5b8fa8',d4:'#9b7bb5',car:'#e8b84b'};
+
+// Tracés à pied
+const r1=[[44.740,6.722],[44.736,6.716],[44.730,6.708],[44.729,6.700],[44.727,6.692],[44.725,6.685]]; // Arvieux → Lac Roue → Rochebrune
+const r2=[[44.707,6.704],[44.708,6.708],[44.709,6.712],[44.710,6.714],[44.711,6.716],[44.712,6.718],[44.710,6.716],[44.708,6.715],[44.706,6.714]]; // Queyron → Furfande
+const r2b=[[44.706,6.714],[44.708,6.715],[44.710,6.716],[44.712,6.718],[44.710,6.714],[44.709,6.712],[44.708,6.708],[44.707,6.704]]; // Furfande retour Queyron
+const r3=[[44.718,6.660],[44.719,6.663],[44.720,6.665],[44.721,6.666],[44.722,6.668]]; // Le Coin → Brunissard
+const r4=[[44.722,6.668],[44.721,6.666],[44.720,6.665],[44.719,6.663],[44.718,6.660]]; // Brunissard → Le Coin retour
+
+// Navettes voiture
+const nav1=[[44.725,6.685],[44.720,6.680],[44.715,6.692],[44.710,6.698],[44.707,6.704]]; // Rochebrune → Queyron
+const nav2=[[44.707,6.704],[44.712,6.695],[44.716,6.683],[44.718,6.672],[44.718,6.660]]; // Queyron → Le Coin
+const nav3=[[44.718,6.660],[44.728,6.678],[44.734,6.700],[44.740,6.722]]; // Le Coin → Arvieux
+
+const routes={
+  1:L.polyline(r1,{color:C.d1,weight:3.5,opacity:.9}),
+  2:L.polyline(r2,{color:C.d2,weight:3.5,opacity:.9}),
+  '2b':L.polyline(r2b,{color:'rgba(255,255,255,.25)',weight:2,opacity:.7,dashArray:'4 4'}),
+  3:L.polyline(r3,{color:C.d3,weight:3.5,opacity:.9}),
+  4:L.polyline(r4,{color:'rgba(255,255,255,.25)',weight:2,opacity:.7,dashArray:'4 4'}),
+  nav1:L.polyline(nav1,{color:C.car,weight:2.5,opacity:.7,dashArray:'8 5'}),
+  nav2:L.polyline(nav2,{color:C.car,weight:2.5,opacity:.7,dashArray:'8 5'}),
+  nav3:L.polyline(nav3,{color:C.car,weight:2,opacity:.5,dashArray:'6 5'}),
+};
+Object.values(routes).forEach(r=>r.addTo(map));
+const dayOn={1:true,2:true,3:true,4:true};
+
+function ico(em,col,sq=false,sz=26){
+  return L.divIcon({html:`<div style="width:${sz}px;height:${sz}px;background:${col};border-radius:${sq?'6px':'50%'};border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:${sz*.42}px;box-shadow:0 2px 8px rgba(0,0,0,.55);cursor:pointer;">${em}</div>`,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+}
+function mk(tag,col,name,sub,bdg='',bs=''){
+  return `<div class="pop"><div class="ptag" style="color:${col}">${tag}</div><div class="pname">${name}</div><div class="psub">${sub}</div>${bdg?`<div class="pbdg" style="${bs}">${bdg}</div>`:''}</div>`;
+}
+
+const pts=[
+  {lat:44.740,lng:6.722,day:1,icon:ico('🚗',C.d1,false,24),pop:mk('Départ/Retour J1',C.d1,'Parking Arvieux','Voiture garée ici. Départ GR5 vers Les Maisons et le Lac de Roue.','1550m',`background:rgba(90,158,106,.15);color:${C.d1}`)},
+  {lat:44.729,lng:6.700,day:1,icon:ico('∿',C.d1,false,24),pop:mk('Jour 1 ⭐',C.d1,'Lac de Roue · 1850m','Tables de pique-nique, mélèzes, ambiance canadienne. Grande pause pour les enfants !')},
+  {lat:44.725,lng:6.685,day:1,icon:ico('🏠',C.d1,true,30),pop:mk('Nuit 1',C.d1,'Gîte Le Grand Rochebrune · Souliers','⭐4.6 · Alix & Victor · 1840m · Cuisine maison. Veau du village, fromage local. Rénové 2014.','📞 +33 4 92 21 86 77',`background:rgba(90,158,106,.15);color:${C.d1}`)},
+  {lat:44.716,lng:6.694,day:1,icon:ico('🚗',C.car,false,22),pop:mk('Navette J2 matin',C.car,'Voiture · Souliers → Queyron','15 min de route via Villargaudin. Laissez la voiture au Queyron (1950m).','⏱ 15 min',`background:rgba(232,184,75,.15);color:${C.car}`)},
+  {lat:44.707,lng:6.704,day:2,icon:ico('P',C.d2,false,24),pop:mk('Départ J2',C.d2,'Parking du Queyron · 1950m','"L\'itinéraire le plus court et le plus beau pour Furfande — idéal en famille." (Site officiel refuge)')},
+  {lat:44.712,lng:6.718,day:2,icon:ico('▲',C.d2,false,22),pop:mk('Jour 2',C.d2,'Col de Furfande · 2500m','Vue Écrins et Font Sancte. 15 min de descente vers le refuge.')},
+  {lat:44.706,lng:6.714,day:2,icon:ico('🏠',C.d2,true,30),pop:mk('Nuit 2 ⭐',C.d2,'Refuge de Furfande · 2293m','⭐4.7 · Hugo & Violaine · "Terrasse la plus spectaculaire du Queyras." Chamois garantis !','📞 +33 6 16 56 23 79',`background:rgba(201,125,46,.15);color:${C.d2}`)},
+  {lat:44.713,lng:6.686,day:3,icon:ico('🚗',C.car,false,22),pop:mk('Navette J3',C.car,'Voiture · Queyron → Le Coin d\'Arvieux','10 min. Départ GR58 vers Brunissard depuis Le Coin.','⏱ 10 min',`background:rgba(232,184,75,.15);color:${C.car}`)},
+  {lat:44.718,lng:6.660,day:3,icon:ico('→',C.d3,false,22),pop:mk('Jour 3',C.d3,'Le Coin d\'Arvieux · GR58','Départ GR58 balisé vers Brunissard. 1h30, forêt de mélèzes, belvédère.')},
+  {lat:44.722,lng:6.668,day:3,icon:ico('🏠',C.d3,true,30),pop:mk('Nuit 3',C.d3,'Brunissard · Gîte Les Bons Enfants','1800m · Village animé. Restaurant Chez Marius (pizzas feu de bois !). Camping avec bains nordiques.','📞 +33 4 92 46 73 85',`background:rgba(91,143,168,.15);color:${C.d3}`)},
+  {lat:44.740,lng:6.722,day:4,icon:ico('🏁',C.d4,false,26),pop:mk('Fin · 10 août',C.d4,'Arvieux · Trek terminé ✓','Voiture récupérée au Coin. Retour Arvieux. Cap sur l\'Italie via Mont-Cenis → Lac d\'Orta !','🇮🇹 2h45 du Lac d\'Orta',`background:rgba(192,69,58,.15);color:#c0453a`)},
+];
+
+const mkrs=[];
+pts.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:p.icon}).addTo(map).bindPopup(p.pop,{maxWidth:235,offset:[0,-8]});
+  mkrs.push({m,day:p.day});
+});
+
+function fly(c,z){map.flyTo(c,z,{duration:.9,easeLinearity:.3});}
+function act(el){document.querySelectorAll('.stop').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+function tog(d,el){
+  dayOn[d]=!dayOn[d];
+  el.classList.toggle('on',dayOn[d]);
+  document.getElementById('db'+d)?.classList.toggle('hidden',!dayOn[d]);
+  const rkeys=d===1?['1','nav1']:d===2?['2','2b']:d===3?['3','4','nav2']:['nav3'];
+  rkeys.forEach(k=>{if(routes[k]){dayOn[d]?routes[k].addTo(map):map.removeLayer(routes[k]);}});
+  mkrs.forEach(m=>{if(m.day===d){dayOn[d]?m.m.addTo(map):map.removeLayer(m.m);}});
+}
+
+map.fitBounds([[44.695,6.645],[44.750,6.735]],{padding:[30,30]});
+</script>
+</body>
+</html>

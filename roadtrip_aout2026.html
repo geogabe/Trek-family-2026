@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Road Trip Août 2026 — Famille</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --night: #12100e;
+    --bark: #221a10;
+    --bark2: #2e2418;
+    --stone: #f0ebe0;
+    --muted: rgba(240,235,224,0.45);
+    --dim: rgba(240,235,224,0.22);
+    --p1: #c97d2e;   /* Angers/départ */
+    --p2: #4a8c5c;   /* Blacé */
+    --p3: #5b8fa8;   /* Guillestre */
+    --p4: #9b7bb5;   /* Trek */
+    --p5: #c0453a;   /* Italie */
+    --route: #c97d2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--night); color: var(--stone); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    background: var(--bark);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink: 0;
+  }
+  .htitle { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; color: var(--stone); }
+  .hsub { font-size: 11px; color: var(--muted); margin-top: 1px; font-weight: 300; }
+  .hbadge { display: flex; gap: 8px; align-items: center; }
+  .badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 500; letter-spacing: 0.04em; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar { width: 310px; flex-shrink: 0; background: var(--bark); overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.05); }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  /* PHASE CARD */
+  .phase { border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .ph { padding: 12px 16px 8px; display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+  .ph:hover { background: rgba(255,255,255,0.03); }
+  .ph-num { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; flex-shrink: 0; font-family: 'Playfair Display', serif; font-style: italic; margin-top: 2px; }
+  .ph-info { flex: 1; }
+  .ph-name { font-size: 12px; font-weight: 500; color: var(--stone); line-height: 1.3; }
+  .ph-dates { font-size: 10px; color: var(--muted); margin-top: 2px; font-weight: 300; }
+  .ph-km { font-size: 10px; font-weight: 500; margin-top: 4px; }
+
+  .ph-body { padding: 0 16px 12px 52px; }
+  .ph-desc { font-size: 11px; color: var(--muted); line-height: 1.6; font-weight: 300; margin-bottom: 8px; }
+
+  .stops-list { display: flex; flex-direction: column; gap: 1px; }
+  .stop-item { display: flex; gap: 8px; padding: 5px 8px; border-radius: 6px; cursor: pointer; align-items: flex-start; transition: background 0.12s; }
+  .stop-item:hover { background: rgba(255,255,255,0.06); }
+  .stop-item.active { background: rgba(255,255,255,0.09); }
+  .si-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .si-info { flex: 1; }
+  .si-name { font-size: 11px; font-weight: 500; color: var(--stone); }
+  .si-detail { font-size: 10px; color: var(--muted); font-weight: 300; margin-top: 1px; }
+
+  .tip-box { margin-top: 8px; padding: 7px 10px; border-radius: 5px; border-left: 2px solid; font-size: 10px; color: rgba(240,235,224,0.6); line-height: 1.5; font-weight: 300; }
+
+  /* MAP */
+  #map { flex: 1; background: #12100e; }
+
+  /* Leaflet */
+  .leaflet-popup-content-wrapper { background: var(--bark2); color: var(--stone); border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 28px rgba(0,0,0,0.6); padding: 0; overflow: hidden; }
+  .leaflet-popup-tip { background: var(--bark2); }
+  .leaflet-popup-content { margin: 0; width: 210px !important; }
+  .pop { padding: 13px 15px; }
+  .pop-tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; margin-bottom: 5px; }
+  .pop-name { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--stone); margin-bottom: 3px; }
+  .pop-sub { font-size: 11px; color: var(--muted); font-weight: 300; line-height: 1.5; }
+  .pop-badge { margin-top: 8px; padding: 5px 9px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+
+  /* Bottom bar */
+  .bbar { background: rgba(18,16,14,0.95); border-top: 1px solid rgba(255,255,255,0.05); padding: 7px 18px; display: flex; gap: 18px; align-items: center; flex-shrink: 0; }
+  .bs { display: flex; flex-direction: column; gap: 1px; }
+  .bsv { font-size: 13px; font-weight: 500; color: var(--stone); font-family: 'Playfair Display', serif; }
+  .bsl { font-size: 9px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.07em; }
+  .bdiv { width: 1px; height: 24px; background: rgba(255,255,255,0.08); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="htitle">Road Trip Août 2026</div>
+    <div class="hsub">Angers → Beaujolais → Alpes → Italie · Famille 5 · ~3 semaines</div>
+  </div>
+  <div class="hbadge">
+    <div class="badge" style="background:rgba(201,125,46,0.2);color:var(--p1)">4 étapes</div>
+    <div class="badge" style="background:rgba(192,69,58,0.2);color:var(--p5)">~1 050 km total</div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+
+    <!-- Phase 1 Départ -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([47.473, -0.554], 10)">
+        <div class="ph-num" style="background:rgba(201,125,46,0.25);color:var(--p1)">🏠</div>
+        <div class="ph-info">
+          <div class="ph-name">Départ — Angers</div>
+          <div class="ph-dates">31 juillet · Départ vers Blacé</div>
+          <div class="ph-km" style="color:var(--p1)">Point de départ</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Départ en fin de matinée pour arriver à Blacé en début d'après-midi et avoir le temps de se préparer pour le mariage.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([47.473,-0.554],12)">
+            <div class="si-dot" style="background:var(--p1)"></div>
+            <div class="si-info"><div class="si-name">Angers — 49100</div><div class="si-detail">17 Rue Paul Henry · Maison de départ</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(201,125,46,0.08);border-color:var(--p1)">🚗 A11 → A6 · ~4h · Prévoir pique-nique autoroute pour les enfants</div>
+      </div>
+    </div>
+
+    <!-- Phase 2 Mariage -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([46.032, 4.644], 13)">
+        <div class="ph-num" style="background:rgba(74,140,92,0.25);color:var(--p2)">🥂</div>
+        <div class="ph-info">
+          <div class="ph-name">Mariage — Blacé, Beaujolais</div>
+          <div class="ph-dates">1–2 août · 2 nuits</div>
+          <div class="ph-km" style="color:var(--p2)">~480 km depuis Angers</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Mariage vendredi soir, soirée dimanche dans les vignes du Beaujolais avec les enfants avant de reprendre la route lundi matin.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([46.032,4.644],14)">
+            <div class="si-dot" style="background:var(--p2)"></div>
+            <div class="si-info"><div class="si-name">Blacé — 69460</div><div class="si-detail">1–2 août · Mariage + vignes Beaujolais</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(74,140,92,0.08);border-color:var(--p2)">🍇 Le dimanche : balade à vélo dans les vignes avec les enfants (location possible à Belleville-en-Beaujolais)</div>
+      </div>
+    </div>
+
+    <!-- Phase 3 Guillestre -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([44.660, 6.649], 12)">
+        <div class="ph-num" style="background:rgba(91,143,168,0.25);color:var(--p3)">🏔</div>
+        <div class="ph-info">
+          <div class="ph-name">Chez votre frère — Guillestre</div>
+          <div class="ph-dates">3–7 août · 4–5 nuits</div>
+          <div class="ph-km" style="color:var(--p3)">~220 km depuis Blacé · 2h30</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Base d'acclimatation altitude avant le trek. Explorez le Queyras en famille — Saint-Véran, lac de Roue, via ferrata kids à Ceillac.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([44.660,6.649],13)">
+            <div class="si-dot" style="background:var(--p3)"></div>
+            <div class="si-info"><div class="si-name">Guillestre — 05600</div><div class="si-detail">Chez votre frère · 3–7 août</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.699,6.870],14)">
+            <div class="si-dot" style="background:rgba(91,143,168,0.5)"></div>
+            <div class="si-info"><div class="si-name">Saint-Véran</div><div class="si-detail">Plus haut village d'Europe · excursion</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.6166,6.8116],14)">
+            <div class="si-dot" style="background:rgba(91,143,168,0.5)"></div>
+            <div class="si-info"><div class="si-name">Lac Sainte-Anne</div><div class="si-detail">2415m · reconnaissance avant trek</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(91,143,168,0.08);border-color:var(--p3)">⛰️ L'acclimatation ici est clé pour le 6 ans avant le trek. Faites 1–2 petites randonnées dès le 1er jour.</div>
+      </div>
+    </div>
+
+    <!-- Phase 4 Trek -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([44.640, 6.860], 12)">
+        <div class="ph-num" style="background:rgba(155,123,181,0.25);color:var(--p4)">⛺</div>
+        <div class="ph-info">
+          <div class="ph-name">Trek Refuges — Boucle Ceillac</div>
+          <div class="ph-dates">7–10 août · 3 jours, 2 nuits</div>
+          <div class="ph-km" style="color:var(--p4)">À pied depuis Ceillac · 0 km voiture</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Boucle Ceillac → Lac Miroir → Lac Sainte-Anne → Refuge de la Cime → Col du Fromage → Refuge alternatif → Saint-Véran → Retour.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([44.646,6.798],14)">
+            <div class="si-dot" style="background:var(--p4)"></div>
+            <div class="si-info"><div class="si-name">Parking Mélézet — Ceillac</div><div class="si-detail">Départ et retour · voiture 3 jours</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.636,6.806],15)">
+            <div class="si-dot" style="background:rgba(155,123,181,0.6)"></div>
+            <div class="si-info"><div class="si-name">Lac Miroir · 2214m</div><div class="si-detail">Jour 1 · pique-nique · marmottes</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.6166,6.8116],15)">
+            <div class="si-dot" style="background:rgba(155,123,181,0.6)"></div>
+            <div class="si-info"><div class="si-name">Lac Sainte-Anne ⭐ · 2415m</div><div class="si-detail">Jour 1 · lac turquoise · point haut</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.6439,6.8030],15)">
+            <div class="si-dot" style="background:var(--p4)"></div>
+            <div class="si-info"><div class="si-name">🏠 Refuge de la Cime</div><div class="si-detail">Nuit 1 · ⭐ 4.6 · +33 6 32 00 09 56</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([44.699,6.936],14)">
+            <div class="si-dot" style="background:rgba(155,123,181,0.6)"></div>
+            <div class="si-info"><div class="si-name">🏠 Refuge alternatif Nuit 2</div><div class="si-detail">Gîte Les Gabelous ou Chalet L'Estoilies</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(155,123,181,0.08);border-color:var(--p4)">📋 Refuge de la Blanche complet → alternatives : Gîte Les Gabelous ⭐4.6 (Saint-Véran) · Chalet L'Estoilies ⭐4.7</div>
+      </div>
+    </div>
+
+    <!-- Phase 5 Frontière -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([45.259, 6.900], 12)">
+        <div class="ph-num" style="background:rgba(192,69,58,0.2);color:var(--p5)">🛤</div>
+        <div class="ph-info">
+          <div class="ph-name">Transition — Col Mont-Cenis</div>
+          <div class="ph-dates">10 août · Arrêt panoramique</div>
+          <div class="ph-km" style="color:var(--p5)">Sur la route vers l'Italie</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Lac du Mont-Cenis à 2085m — arrêt de 30–45 min, pique-nique avec vue. Les enfants adorent l'eau turquoise au bord de la route.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([45.259,6.900],13)">
+            <div class="si-dot" style="background:var(--p5)"></div>
+            <div class="si-info"><div class="si-name">Lac du Mont-Cenis · 2085m</div><div class="si-detail">Arrêt 30 min · ⭐ 4.8 · vue spectaculaire</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(192,69,58,0.08);border-color:var(--p5)">🎯 Depuis Ceillac : D902 → Col d'Izoard → Briançon → Tunnel Fréjus ou Col Mont-Cenis → Lac d'Orta en ~2h30–3h</div>
+      </div>
+    </div>
+
+    <!-- Phase 6 Italie -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([45.796, 8.416], 11)">
+        <div class="ph-num" style="background:rgba(192,69,58,0.25);color:var(--p5)">🇮🇹</div>
+        <div class="ph-info">
+          <div class="ph-name">Lac d'Orta — HomeExchange</div>
+          <div class="ph-dates">10–19 août · ~9 nuits</div>
+          <div class="ph-km" style="color:var(--p5)">2h30 depuis Ceillac · Piémont</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Lac secret du Piémont — moins connu que Côme ou Majeur, plus authentique. Village médiéval d'Orta San Giulio sur son île, baignades, dolce vita.</div>
+        <div class="stops-list">
+          <div class="stop-item" onclick="flyTo([45.796,8.416],13)">
+            <div class="si-dot" style="background:var(--p5)"></div>
+            <div class="si-info"><div class="si-name">Orta San Giulio</div><div class="si-detail">Base HomeExchange · 10–19 août</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([45.893,8.555],13)">
+            <div class="si-dot" style="background:rgba(192,69,58,0.5)"></div>
+            <div class="si-info"><div class="si-name">Stresa — Lac Majeur</div><div class="si-detail">Excursion · Îles Borromées · 35 min</div></div>
+          </div>
+          <div class="stop-item" onclick="flyTo([45.863,7.398],13)">
+            <div class="si-dot" style="background:rgba(192,69,58,0.5)"></div>
+            <div class="si-info"><div class="si-name">Vallée d'Aoste · Cogne</div><div class="si-detail">Excursion optionnelle · 1h30</div></div>
+          </div>
+        </div>
+        <div class="tip-box" style="background:rgba(192,69,58,0.08);border-color:var(--p5)">🏠 HomeExchange : cherchez "Orta San Giulio", "Pettenasco", "Armeno" (5 pers, 10–19 août) — moins de demandes qu'au Lac de Côme !</div>
+      </div>
+    </div>
+
+    <!-- Retour -->
+    <div class="phase">
+      <div class="ph" onclick="flyTo([47.473, -0.554], 8)">
+        <div class="ph-num" style="background:rgba(201,125,46,0.2);color:var(--p1)">🏁</div>
+        <div class="ph-info">
+          <div class="ph-name">Retour — Angers</div>
+          <div class="ph-dates">~19–20 août · ~950 km</div>
+          <div class="ph-km" style="color:var(--p1)">Lac d'Orta → A6 → Paris → A11</div>
+        </div>
+      </div>
+      <div class="ph-body">
+        <div class="ph-desc">Option : couper en deux avec une nuit à Lyon ou Mâcon pour ne pas faire 950 km d'une traite avec 3 enfants.</div>
+        <div class="tip-box" style="background:rgba(201,125,46,0.08);border-color:var(--p1)">💡 Départ de nuit (21h) depuis le lac d'Orta — les enfants dorment, vous arrivez à Angers frais le lendemain matin !</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<div class="bbar">
+  <div class="bs"><div class="bsv">~1 050 km</div><div class="bsl">Total voiture</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">3 semaines</div><div class="bsl">Durée</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">4 étapes</div><div class="bsl">Hébergements</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">Boucle</div><div class="bsl">Circuit</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv" style="color:var(--p5)">Lac d'Orta ⭐</div><div class="bsl">Destination Italie</div></div>
+</div>
+
+<script>
+const map = L.map('map', { center: [45.2, 5.5], zoom: 7 });
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '© OpenStreetMap © CARTO', maxZoom: 18 }).addTo(map);
+
+const colors = { angers: '#c97d2e', blace: '#4a8c5c', guill: '#5b8fa8', trek: '#9b7bb5', italie: '#c0453a' };
+
+// Main route
+const mainRoute = [
+  [47.473, -0.554],   // Angers
+  [46.985, 2.547],    // A6
+  [46.032, 4.644],    // Blacé
+  [45.748, 4.847],    // Lyon
+  [45.189, 5.724],    // Grenoble
+  [44.660, 6.649],    // Guillestre
+  [44.646, 6.798],    // Ceillac trek
+  [45.259, 6.900],    // Mont-Cenis
+  [45.796, 8.416],    // Lac d'Orta
+];
+L.polyline(mainRoute, { color: '#c97d2e', weight: 2.5, opacity: 0.6, dashArray: '6 4' }).addTo(map);
+
+// Return route (faint)
+const returnRoute = [
+  [45.796, 8.416],
+  [45.748, 4.847],
+  [47.473, -0.554],
+];
+L.polyline(returnRoute, { color: '#888', weight: 1.5, opacity: 0.3, dashArray: '4 6' }).addTo(map);
+
+// Trek route
+const trekRoute = [
+  [44.646, 6.798], [44.636, 6.806], [44.6166, 6.8116],
+  [44.6439, 6.8030], [44.62, 6.87], [44.699, 6.936], [44.668, 6.778], [44.646, 6.798]
+];
+L.polyline(trekRoute, { color: '#9b7bb5', weight: 2, opacity: 0.8, dashArray: '3 3' }).addTo(map);
+
+function icon(emoji, color, size=30) {
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:${size*0.4}px;box-shadow:0 2px 8px rgba(0,0,0,0.5);">${emoji}</div>`,
+    className: '', iconSize: [size,size], iconAnchor: [size/2,size/2]
+  });
+}
+function rectIcon(emoji, color) {
+  return L.divIcon({
+    html: `<div style="width:32px;height:32px;background:${color};border-radius:7px;border:2px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.6);">${emoji}</div>`,
+    className: '', iconSize: [32,32], iconAnchor: [16,16]
+  });
+}
+function pop(tag, name, sub, badge='', badgeStyle='') {
+  return `<div class="pop"><div class="pop-tag" style="color:${tag.color}">${tag.label}</div><div class="pop-name">${name}</div><div class="pop-sub">${sub}</div>${badge ? `<div class="pop-badge" style="${badgeStyle}">${badge}</div>` : ''}</div>`;
+}
+
+// Markers
+L.marker([47.473,-0.554], {icon: icon('🏠',colors.angers)}).addTo(map).bindPopup(pop({label:'Départ',color:colors.angers},'Angers','17 Rue Paul Henry · 49100','31 juillet → cap Beaujolais',`background:rgba(201,125,46,0.15);color:${colors.angers}`));
+L.marker([46.032,4.644], {icon: rectIcon('🥂',colors.blace)}).addTo(map).bindPopup(pop({label:'Étape 1 · 1–2 août',color:colors.blace},'Blacé — Beaujolais','Mariage + vignes Beaujolais. ~480 km depuis Angers.','2 nuits',`background:rgba(74,140,92,0.15);color:${colors.blace}`));
+L.marker([44.660,6.649], {icon: rectIcon('🏔',colors.guill)}).addTo(map).bindPopup(pop({label:'Étape 2 · 3–7 août',color:colors.guill},'Guillestre — Queyras','Chez votre frère. Acclimatation altitude. Excursions Queyras.','4–5 nuits',`background:rgba(91,143,168,0.15);color:${colors.guill}`));
+L.marker([44.646,6.798], {icon: icon('⛺',colors.trek,28)}).addTo(map).bindPopup(pop({label:'Trek · 7–10 août',color:colors.trek},'Départ Ceillac — Trek','Boucle 3 jours : Lac Miroir, Lac Ste-Anne, 2 refuges, Saint-Véran','À pied · 31 km',`background:rgba(155,123,181,0.15);color:${colors.trek}`));
+L.marker([44.6166,6.8116], {icon: icon('★',colors.trek,24)}).addTo(map).bindPopup(pop({label:'Trek J1',color:colors.trek},'Lac Sainte-Anne ⭐','2415m · Lac turquoise — le clou du trek'));
+L.marker([44.6439,6.8030], {icon: icon('🏠',colors.trek,26)}).addTo(map).bindPopup(pop({label:'Nuit 1 Trek',color:colors.trek},'Refuge de la Cime','⭐ 4.6 · Cuisine maison · Cash uniquement','📞 +33 6 32 00 09 56',`background:rgba(155,123,181,0.15);color:${colors.trek}`));
+L.marker([44.699,6.936], {icon: icon('🏠',colors.trek,26)}).addTo(map).bindPopup(pop({label:'Nuit 2 Trek',color:colors.trek},'Gîte à Saint-Véran','Les Gabelous ⭐4.6 ou L\'Estoilies ⭐4.7 — alternatives refuge Blanche','📞 Voir artéfact refuges',`background:rgba(155,123,181,0.15);color:${colors.trek}`));
+L.marker([45.259,6.900], {icon: icon('🛤',colors.italie,26)}).addTo(map).bindPopup(pop({label:'Transition · 10 août',color:colors.italie},'Col du Mont-Cenis','Lac turquoise à 2085m. Arrêt 30–45 min pique-nique.','⭐ 4.8 · incontournable',`background:rgba(192,69,58,0.15);color:${colors.italie}`));
+L.marker([45.796,8.416], {icon: rectIcon('🇮🇹',colors.italie)}).addTo(map).bindPopup(pop({label:'Étape finale · 10–19 août',color:colors.italie},'Lac d\'Orta — Piémont','HomeExchange · 5 pers · ~9 nuits. Lac secret, village médiéval, baignades.','Cherchez : Orta / Pettenasco / Armeno',`background:rgba(192,69,58,0.15);color:${colors.italie}`));
+L.marker([45.893,8.555], {icon: icon('⛵','rgba(192,69,58,0.7)',22)}).addTo(map).bindPopup(pop({label:'Excursion',color:colors.italie},'Stresa — Lac Majeur','Îles Borromées · 35 min depuis Orta San Giulio'));
+
+function flyTo(coords, zoom) {
+  map.flyTo(coords, zoom, { duration: 1, easeLinearity: 0.3 });
+}
+
+map.fitBounds([[44.2,-1.2],[47.8,9.2]], {padding:[30,30]});
+</script>
+</body>
+</html>

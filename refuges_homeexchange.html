@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refuges & HomeExchange — Août 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #12100e;
+    --bark: #1e1810;
+    --bark2: #2a2016;
+    --stone: #f0ebe0;
+    --muted: rgba(240,235,224,0.5);
+    --dim: rgba(240,235,224,0.25);
+    --moss: #4a8c5c;
+    --sky: #5b8fa8;
+    --amber: #c97d2e;
+    --italy: #c0453a;
+    --purple: #9b7bb5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--night); color: var(--stone); min-height: 100vh; }
+
+  .container { max-width: 820px; margin: 0 auto; padding: 24px 20px; }
+
+  /* HEADER */
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; color: var(--stone); }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 300; }
+
+  /* SECTION */
+  .section { margin-bottom: 32px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; color: var(--stone); margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+  .section-sub { font-size: 12px; color: var(--muted); font-weight: 300; margin-bottom: 14px; line-height: 1.5; }
+
+  /* CARDS GRID */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .cards.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 600px) { .cards, .cards.three { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bark);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.18); }
+  .card.featured { border-color: rgba(74,140,92,0.5); }
+  .card.alt { border-color: rgba(91,143,168,0.4); }
+  .card.he { border-color: rgba(192,69,58,0.35); }
+
+  .card-top { padding: 12px 14px 10px; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
+  .card-flag { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .card-tag { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; padding: 2px 7px; border-radius: 3px; }
+  .card-stars { font-size: 11px; color: var(--amber); }
+  .card-name { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--stone); line-height: 1.3; margin-bottom: 2px; }
+  .card-loc { font-size: 10px; color: var(--muted); font-weight: 300; }
+
+  .card-body { padding: 10px 14px 12px; }
+  .card-desc { font-size: 11px; color: var(--muted); line-height: 1.6; font-weight: 300; margin-bottom: 8px; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .bdg { font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 400; }
+
+  .card-footer { padding: 8px 14px; background: rgba(255,255,255,0.025); border-top: 0.5px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; }
+  .card-phone { font-size: 11px; color: var(--stone); font-weight: 500; }
+  .card-note { font-size: 10px; color: var(--muted); }
+
+  /* BEST PICK */
+  .best-pick { background: var(--bark2); border: 1px solid rgba(74,140,92,0.4); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; gap: 10px; align-items: flex-start; }
+  .bp-icon { font-size: 20px; flex-shrink: 0; }
+  .bp-title { font-size: 12px; font-weight: 500; color: var(--stone); margin-bottom: 3px; }
+  .bp-text { font-size: 11px; color: var(--muted); line-height: 1.5; font-weight: 300; }
+
+  /* HE STRATEGY */
+  .he-strategy { background: var(--bark2); border-left: 3px solid var(--italy); border-radius: 0 8px 8px 0; padding: 12px 14px; margin-bottom: 12px; }
+  .he-strat-title { font-size: 12px; font-weight: 500; color: var(--stone); margin-bottom: 5px; }
+  .he-strat-text { font-size: 11px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+  /* SEARCH TAGS */
+  .search-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .stag { font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid rgba(255,255,255,0.12); color: var(--muted); font-weight: 300; }
+  .stag.hot { border-color: rgba(192,69,58,0.5); color: var(--stone); background: rgba(192,69,58,0.1); }
+
+  /* DIVIDER */
+  .divider { height: 0.5px; background: rgba(255,255,255,0.07); margin: 24px 0; }
+
+  /* WARNING */
+  .warn { background: rgba(201,125,46,0.08); border: 0.5px solid rgba(201,125,46,0.3); border-radius: 8px; padding: 10px 14px; font-size: 11px; color: rgba(240,235,224,0.7); line-height: 1.6; margin-bottom: 14px; }
+  .warn strong { color: var(--amber); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <div class="page-title">Refuges & HomeExchange — Août 2026</div>
+    <div class="page-sub">Alternatives au Refuge de la Blanche (complet) · Logements HomeExchange Italie · Lac d'Orta & environs</div>
+  </div>
+
+  <!-- REFUGES ALTERNATIFS -->
+  <div class="section">
+    <div class="section-title">🏔 Alternatives — Nuit 2 du Trek (9 août)</div>
+    <div class="section-sub">Le Refuge de la Blanche est complet. Voici les meilleures alternatives à Saint-Véran et dans le Queyras, toutes accessibles en fin de Jour 2 depuis le Col du Fromage.</div>
+
+    <div class="warn">
+      <strong>⚡ À appeler cette semaine</strong> — Ces établissements seront complets d'ici juin pour août. Précisez : 5 personnes, 3 enfants (6, 8, 10 ans), nuit du 9 août, demi-pension, lits ensemble si possible.
+    </div>
+
+    <!-- BEST PICK -->
+    <div class="best-pick">
+      <div class="bp-icon">⭐</div>
+      <div>
+        <div class="bp-title">Notre recommandation prioritaire</div>
+        <div class="bp-text">Le <strong style="color:var(--stone)">Gîte Chalet L'Estoilies</strong> à Saint-Véran est la meilleure option : noté 4.7, géré par Nathan et son équipe "adorables", cuisine excellente de produits locaux, accueille les familles de randonneurs. Situé à Saint-Véran, il s'intègre parfaitement dans le circuit — même point de passage que prévu.</div>
+      </div>
+    </div>
+
+    <div class="cards">
+
+      <!-- Estoilies -->
+      <div class="card featured">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(74,140,92,0.2);color:#4a8c5c">⭐ Recommandé</span>
+            <span class="card-stars">★ 4.7 · 133 avis</span>
+          </div>
+          <div class="card-name">Gîte Chalet L'Estoilies</div>
+          <div class="card-loc">Saint-Véran · 2040m · sur le parcours J3</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">"Géré par Nathan Weber, accueil chaleureux. Cuisine principalement de produits locaux. La chambre et la salle de bain étaient propres. Nous recommandons vivement." Parfait pour une famille : local pour le matériel de randonnée, repas copieux.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(74,140,92,0.15);color:#7a9e6e">Famille OK</span>
+            <span class="bdg" style="background:rgba(74,140,92,0.15);color:#7a9e6e">Cuisine locale</span>
+            <span class="bdg" style="background:rgba(74,140,92,0.15);color:#7a9e6e">Local matériel</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone">📞 +33 4 92 45 82 65</span>
+          <span class="card-note">53 St-Véran</span>
+        </div>
+      </div>
+
+      <!-- Gabelous -->
+      <div class="card alt">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(91,143,168,0.2);color:var(--sky)">Bonne option</span>
+            <span class="card-stars">★ 4.6 · 175 avis</span>
+          </div>
+          <div class="card-name">Gîte les Gabelous</div>
+          <div class="card-loc">Saint-Véran centre · 2040m</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">"Accueil sympa, bon endroit, bons conseils pour la rando d'un pro. Dîner bon et bien organisé." En plein cœur du village, terrasse, vue magnifique. Bémol : pas de WiFi en chambre. Idéal si L'Estoilies est complet.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(91,143,168,0.15);color:var(--sky)">Centre village</span>
+            <span class="bdg" style="background:rgba(91,143,168,0.15);color:var(--sky)">Conseils rando</span>
+            <span class="bdg" style="background:rgba(201,125,46,0.15);color:var(--amber)">No WiFi chambre</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone">📞 +33 4 92 45 81 39</span>
+          <span class="card-note">43 la Cala, quartier Pierre Belle</span>
+        </div>
+      </div>
+
+      <!-- Refuge Agnel -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(155,123,181,0.2);color:var(--purple)">Alternative haute</span>
+            <span class="card-stars">★ 4.0 · 435 avis</span>
+          </div>
+          <div class="card-name">Refuge Agnel</div>
+          <div class="card-loc">Molines-en-Queyras · 2580m · Col Agnel</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">"De loin le plus beau refuge de l'été — très bien équipé, dortoirs 6 pers, douches, jeux de société, porcelaine raffinée, picnic excellent." Plus haute altitude mais accessible depuis le Col du Fromage via variante. Exige de modifier légèrement le tracé J2.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(155,123,181,0.15);color:var(--purple)">Très bien équipé</span>
+            <span class="bdg" style="background:rgba(155,123,181,0.15);color:var(--purple)">Vue Mont Viso</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.15);color:var(--italy)">Détour ~1h30</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone">📞 +33 6 60 79 83 90</span>
+          <span class="card-note">Molines-en-Queyras</span>
+        </div>
+      </div>
+
+      <!-- Refuge Maljasset -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(201,125,46,0.15);color:var(--amber)">Vallée Ubaye</span>
+            <span class="card-stars">★ 4.6 · 216 avis</span>
+          </div>
+          <div class="card-name">Refuge Chalet de Maljasset</div>
+          <div class="card-loc">Saint-Paul-sur-Ubaye · 1919m</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">"Refuge de première classe dans un vieux bâtiment. Staff vraiment sympa. Bonne cuisine et sanitaires propres récemment rénovés." CAF — tarif adhérent. Accessible depuis Col du Fromage en descendant vers l'Ubaye. Moins pratique pour boucle mais beau cadre.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(201,125,46,0.15);color:var(--amber)">CAF</span>
+            <span class="bdg" style="background:rgba(201,125,46,0.15);color:var(--amber)">Rénové</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.15);color:var(--italy)">Hors boucle</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone">📞 +33 7 44 85 28 55</span>
+          <span class="card-note">Hameau de Maljasset</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- HOMEEXCHANGE ITALIE -->
+  <div class="section">
+    <div class="section-title">🇮🇹 HomeExchange — Italie · Lac d'Orta & environs</div>
+    <div class="section-sub">Logements recommandés pour 5 personnes du 10 au 19 août. Le Lac d'Orta est moins demandé que Côme ou Majeur — vos GuestPoints iront plus loin ici !</div>
+
+    <div class="he-strategy">
+      <div class="he-strat-title">💡 Stratégie HomeExchange pour août</div>
+      <div class="he-strat-text">
+        Activez votre demande <strong style="color:var(--stone)">cette semaine</strong> — les logements italiens en août sont très demandés. Privilégiez les échanges non-simultanés (GuestPoints) : plus de flexibilité, et les hôtes italiens répondent mieux en été car ils peuvent partir aussi. Envoyez des demandes personnalisées en mentionnant vos 3 enfants et votre projet trek/mariage — ça crée du lien. Visez les maisons avec jardin ou accès lac direct pour les enfants.
+      </div>
+    </div>
+
+    <div class="section-sub" style="margin-top:0;margin-bottom:10px">Zones de recherche par priorité :</div>
+    <div class="search-tags">
+      <span class="stag hot">Orta San Giulio ⭐</span>
+      <span class="stag hot">Pettenasco</span>
+      <span class="stag hot">Armeno</span>
+      <span class="stag">Stresa (Lac Majeur)</span>
+      <span class="stag">Verbania</span>
+      <span class="stag">Omegna</span>
+      <span class="stag">Gignese</span>
+    </div>
+
+    <div class="cards" style="margin-top:14px">
+
+      <!-- Option 1 : Orta San Giulio -->
+      <div class="card he">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(192,69,58,0.2);color:var(--italy)">⭐ Premier choix</span>
+            <span class="card-stars">Lac d'Orta</span>
+          </div>
+          <div class="card-name">Maison ou appart à Orta San Giulio</div>
+          <div class="card-loc">Bord du lac · village médiéval · Piémont</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Le village magique sur l'île San Giulio, accessible en barque. Lac propre pour baignade, marchés le matin, gelato le soir. Les membres HomeExchange locaux sont des familles — échange non-simultané idéal. Cherchez : maison avec terrasse/jardin, 3 chambres.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Bord du lac</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Village historique</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Peu de demandes HE</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone" style="font-size:10px">homeexchange.com → Orta San Giulio</span>
+          <span class="card-note">~2h30 du trek</span>
+        </div>
+      </div>
+
+      <!-- Option 2 : Pettenasco -->
+      <div class="card he">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(192,69,58,0.2);color:var(--italy)">Très bon plan</span>
+            <span class="card-stars">Lac d'Orta</span>
+          </div>
+          <div class="card-name">Villa / Maison à Pettenasco</div>
+          <div class="card-loc">Rive est du Lac d'Orta · calme absolu</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Village calme face au lac, maisons avec jardins et accès eau privé. 5 min en bateau d'Orta San Giulio. Souvent moins demandé qu'Orta même — vos GuestPoints y seront plus efficaces. L'hôtel Laqua by the Lake y est, signe que le coin est prisé des connaisseurs.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Jardin/piscine possible</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Moins compétitif</span>
+            <span class="bdg" style="background:rgba(192,69,58,0.12);color:#e07060">Calme famille</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone" style="font-size:10px">homeexchange.com → Pettenasco</span>
+          <span class="card-note">5 min d'Orta</span>
+        </div>
+      </div>
+
+      <!-- Option 3 : Stresa/Lac Majeur -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(91,143,168,0.2);color:var(--sky)">Option B</span>
+            <span class="card-stars">Lac Majeur</span>
+          </div>
+          <div class="card-name">Maison à Stresa ou Verbania</div>
+          <div class="card-loc">Lac Majeur · Piémont · 35 min d'Orta</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Si Lac d'Orta est indisponible. Stresa = Îles Borromées, jardins extraordinaires, vue sur les Alpes. Plus touristique et plus demandé sur HE — préférez Verbania ou Baveno moins concurrentiels. Lac Majeur est plus grand, plus animé, plus "balnéaire".</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(91,143,168,0.15);color:var(--sky)">Îles Borromées</span>
+            <span class="bdg" style="background:rgba(91,143,168,0.15);color:var(--sky)">Plus grand lac</span>
+            <span class="bdg" style="background:rgba(201,125,46,0.15);color:var(--amber)">Plus demandé HE</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone" style="font-size:10px">homeexchange.com → Stresa / Verbania</span>
+          <span class="card-note">3h depuis trek</span>
+        </div>
+      </div>
+
+      <!-- Option 4 : Vallée d'Aoste -->
+      <div class="card">
+        <div class="card-top">
+          <div class="card-flag">
+            <span class="card-tag" style="background:rgba(155,123,181,0.2);color:var(--purple)">Option montagne</span>
+            <span class="card-stars">Vallée d'Aoste</span>
+          </div>
+          <div class="card-name">Appartement à Cogne ou Courmayeur</div>
+          <div class="card-loc">Vallée d'Aoste · 1h45 du trek</div>
+        </div>
+        <div class="card-body">
+          <div class="card-desc">Si vous préférez rester en montagne après le trek. Cogne = Parc National Gran Paradiso, marmottes, bouquetins, cascades. Courmayeur = sous le Mont-Blanc, téléphérique, très animé en août. Plus proche (1h45) mais pas de lac pour les baignades.</div>
+          <div class="badges">
+            <span class="bdg" style="background:rgba(155,123,181,0.15);color:var(--purple)">Montagne</span>
+            <span class="bdg" style="background:rgba(155,123,181,0.15);color:var(--purple)">Randos familles</span>
+            <span class="bdg" style="background:rgba(155,123,181,0.15);color:var(--purple)">1h45 du trek</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-phone" style="font-size:10px">homeexchange.com → Cogne / Courmayeur</span>
+          <span class="card-note">Via Col Mont-Cenis</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- CHECKLIST -->
+  <div class="section">
+    <div class="section-title">✅ Checklist actions immédiates</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--bark);border-radius:8px;border-left:2px solid var(--moss)">
+        <span style="font-size:13px;flex-shrink:0">1.</span>
+        <div><div style="font-size:12px;font-weight:500;color:var(--stone)">Appeler Gîte L'Estoilies — Saint-Véran</div><div style="font-size:11px;color:var(--muted);margin-top:2px">+33 4 92 45 82 65 · 5 pers, nuit du 9 août, demi-pension</div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--bark);border-radius:8px;border-left:2px solid var(--sky)">
+        <span style="font-size:13px;flex-shrink:0">2.</span>
+        <div><div style="font-size:12px;font-weight:500;color:var(--stone)">Appeler Gîte Les Gabelous (backup)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">+33 4 92 45 81 39 · même nuit · si L'Estoilies complet</div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--bark);border-radius:8px;border-left:2px solid var(--amber)">
+        <span style="font-size:13px;flex-shrink:0">3.</span>
+        <div><div style="font-size:12px;font-weight:500;color:var(--stone)">Activer demande HomeExchange Italie</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Zones : Orta San Giulio, Pettenasco, Armeno · 10–19 août · 5 pers · message personnalisé</div></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;background:var(--bark);border-radius:8px;border-left:2px solid var(--purple)">
+        <span style="font-size:13px;flex-shrink:0">4.</span>
+        <div><div style="font-size:12px;font-weight:500;color:var(--stone)">Confirmer Refuge de la Cime (nuit 1 OK)</div><div style="font-size:11px;color:var(--muted);margin-top:2px">+33 6 32 00 09 56 · 8 août · vérifier la réservation par mail</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
