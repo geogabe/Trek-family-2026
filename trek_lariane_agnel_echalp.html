@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trek Pont de Lariane · Agnel · L'Échalp · Abriès</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --night:#0e0f0b; --bark:#171910; --bark2:#1f2314;
+    --stone:#edeae0; --muted:rgba(237,234,224,.50); --dim:rgba(237,234,224,.24);
+    --d1:#5a9e6a; --d2:#c97d2e; --d3:#5b8fa8;
+    --bus:#e8b84b; --green:#7dbc6e; --warn:#e07060;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--night);color:var(--stone);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  header{background:var(--bark);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+  .ht{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:var(--stone);}
+  .hs{font-size:11px;color:var(--muted);margin-top:1px;font-weight:300;}
+  .hbadges{display:flex;gap:6px;flex-wrap:wrap;}
+  .hbdg{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:500;}
+  .legend{display:flex;gap:7px;margin-top:6px;}
+  .leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:20px;border:.5px solid transparent;transition:all .15s;}
+  .leg.on{border-color:rgba(255,255,255,.15);color:var(--stone);}
+  .ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+  .main{display:flex;flex:1;overflow:hidden;}
+  .sidebar{width:328px;flex-shrink:0;background:var(--bark);overflow-y:auto;border-right:1px solid rgba(255,255,255,.05);}
+  .sidebar::-webkit-scrollbar{width:3px;}
+  .sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+  /* SOURCE BANNER */
+  .src-banner{margin:10px 14px;padding:8px 12px;background:rgba(125,188,110,.07);border:.5px solid rgba(125,188,110,.28);border-radius:7px;font-size:10px;color:rgba(237,234,224,.65);line-height:1.6;}
+  .src-banner strong{color:var(--green);font-weight:500;}
+
+  /* DAY */
+  .db{border-bottom:1px solid rgba(255,255,255,.05);transition:opacity .2s;}
+  .db.hidden{opacity:.28;}
+  .dh{padding:11px 15px 7px;display:flex;gap:9px;cursor:pointer;}
+  .dh:hover{background:rgba(255,255,255,.03);}
+  .dnum{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;font-family:'Playfair Display',serif;font-style:italic;margin-top:2px;}
+  .dn{flex:1;}
+  .dname{font-size:12px;font-weight:500;color:var(--stone);line-height:1.3;}
+  .ddate{font-size:10px;color:var(--muted);margin-top:2px;font-weight:300;}
+
+  /* STATS */
+  .vstats{display:flex;gap:0;padding:0 15px 7px 50px;}
+  .vst{display:flex;flex-direction:column;gap:1px;border-right:.5px solid rgba(255,255,255,.07);padding:0 10px 0 0;margin-right:10px;}
+  .vst:last-child{border:none;}
+  .vstv{font-size:13px;font-weight:600;color:var(--stone);}
+  .vstl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;}
+  .vsrc{font-size:8px;color:rgba(125,188,110,.75);margin-top:1px;}
+
+  /* PROFILE */
+  .prof{margin:0 15px 8px 50px;background:rgba(255,255,255,.03);border-radius:5px;padding:7px 10px;}
+  .prof-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .prof-bars{display:flex;align-items:flex-end;gap:2px;height:28px;}
+  .pb{flex:1;border-radius:2px 2px 0 0;}
+  .prof-pts{display:flex;gap:2px;margin-top:3px;}
+  .pp{flex:1;font-size:8px;color:var(--dim);text-align:center;line-height:1.3;}
+
+  /* WARNING */
+  .warn-box{margin:0 15px 8px 50px;padding:7px 10px;background:rgba(224,112,96,.08);border:.5px solid rgba(224,112,96,.35);border-radius:6px;font-size:10px;color:rgba(237,234,224,.7);line-height:1.55;}
+  .warn-box strong{color:var(--warn);font-weight:500;}
+
+  /* STOPS */
+  .stops{padding:0 15px 10px;}
+  .stop{display:flex;gap:8px;padding:5px 8px;border-radius:7px;cursor:pointer;transition:background .12s;}
+  .stop:hover{background:rgba(255,255,255,.06);}
+  .stop.active{background:rgba(255,255,255,.09);}
+  .sv{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;}
+  .sico{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+  .sico.sq{border-radius:5px;font-size:12px;width:22px;height:22px;}
+  .sconn{width:1px;flex:1;min-height:8px;margin-top:3px;opacity:.2;}
+  .si{flex:1;padding-top:1px;}
+  .sname{font-size:11px;font-weight:500;color:var(--stone);line-height:1.3;}
+  .sdetail{font-size:10px;color:var(--muted);margin-top:1px;font-weight:300;line-height:1.4;}
+  .salt{font-size:10px;color:var(--dim);margin-top:1px;font-style:italic;font-family:'Playfair Display',serif;}
+  .rbdg{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:3px;margin-top:4px;font-weight:500;}
+
+  /* BUS TRANSFER */
+  .bus-box{margin:0 15px 8px;padding:8px 11px;background:rgba(232,184,75,.07);border:.5px solid rgba(232,184,75,.28);border-radius:6px;display:flex;align-items:flex-start;gap:8px;}
+  .bus-icon{font-size:14px;flex-shrink:0;}
+  .bus-text{font-size:10px;color:rgba(237,234,224,.65);line-height:1.55;}
+  .bus-text strong{color:var(--bus);font-weight:500;}
+
+  .tip{margin:0 15px 10px 50px;padding:7px 10px;border-radius:5px;border-left:2px solid;font-size:10px;color:rgba(237,234,224,.62);line-height:1.5;font-weight:300;}
+
+  /* KIDS */
+  .km{margin:0 15px 10px 50px;}
+  .km-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+  .km-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+  .km-fill{height:100%;border-radius:3px;}
+  .km-cap{font-size:9px;color:var(--muted);margin-top:3px;}
+
+  #map{flex:1;background:var(--night);}
+
+  .leaflet-popup-content-wrapper{background:var(--bark2);color:var(--stone);border-radius:10px;border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 28px rgba(0,0,0,.6);padding:0;overflow:hidden;}
+  .leaflet-popup-tip{background:var(--bark2);}
+  .leaflet-popup-content{margin:0;width:225px!important;}
+  .pop{padding:13px 15px;}
+  .ptag{font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:500;margin-bottom:5px;}
+  .pname{font-family:'Playfair Display',serif;font-size:14px;color:var(--stone);margin-bottom:3px;line-height:1.3;}
+  .psub{font-size:11px;color:var(--muted);font-weight:300;line-height:1.5;}
+  .pbdg{margin-top:7px;padding:4px 9px;border-radius:4px;font-size:10px;font-weight:500;}
+  .psrc{font-size:9px;color:rgba(125,188,110,.6);margin-top:5px;}
+
+  .bbar{background:rgba(14,15,11,.95);border-top:1px solid rgba(255,255,255,.05);padding:7px 18px;display:flex;gap:14px;align-items:center;flex-shrink:0;flex-wrap:wrap;}
+  .bs{display:flex;flex-direction:column;gap:1px;}
+  .bsv{font-size:13px;font-weight:500;color:var(--stone);font-family:'Playfair Display',serif;}
+  .bsl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;}
+  .bdiv{width:1px;height:24px;background:rgba(255,255,255,.07);}
+  .alert{margin-left:auto;font-size:10px;color:var(--green);font-weight:500;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="ht">Trek GR58 · Pont de Lariane → Agnel → L'Échalp → Abriès</div>
+    <div class="hs">3 jours · 2 nuits · 7–9 août 2026 · Boucle via navette · Famille 5 · Données sources officielles</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:5px;">
+      <div class="hbadges">
+        <div class="hbdg" style="background:rgba(125,188,110,.12);color:var(--green)">✅ Distances vérifiées</div>
+        <div class="hbdg" style="background:rgba(232,184,75,.12);color:var(--bus)">🚌 Navette des Escartons</div>
+        <div class="hbdg" style="background:rgba(224,112,96,.12);color:var(--warn)">⚠️ J2 long — voir détail</div>
+      </div>
+      <div class="legend">
+        <div class="leg on" onclick="tog(1,this)" id="l1"><div class="ldot" style="background:var(--d1)"></div>J1</div>
+        <div class="leg on" onclick="tog(2,this)" id="l2"><div class="ldot" style="background:var(--d2)"></div>J2</div>
+        <div class="leg on" onclick="tog(3,this)" id="l3"><div class="ldot" style="background:var(--d3)"></div>J3</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+<div class="sidebar">
+
+  <div class="src-banner"><strong>✅ Sources officielles</strong> · Pont Lariane→Agnel : <strong>7,5km · +550m · 2h30</strong> (refugeagnel.com) · Agnel→L'Échalp : <strong>10,9km · ~4h30</strong> (AllTrails GR58 étape 3) · L'Échalp→Abriès : <strong>navette Escartons 8 min</strong> ou 5km à pied vallée.</div>
+
+  <!-- JOUR 1 -->
+  <div class="db" id="db1" style="border-top:1px solid rgba(255,255,255,.05)">
+    <div class="dh" onclick="fly([44.719,6.904],13)">
+      <div class="dnum" style="background:rgba(90,158,106,.22);color:var(--d1)">1</div>
+      <div class="dn">
+        <div class="dname">Pont de Lariane → Refuge Agnel</div>
+        <div class="ddate">7 août · Montée progressive sur route fermée</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">7,5 km</div><div class="vstl">Distance</div></div>
+      <div class="vst"><div class="vstv">+550 m</div><div class="vstl">Dénivelé</div></div>
+      <div class="vst"><div class="vstv">2h30</div><div class="vstl">Durée</div><div class="vsrc">✓ refugeagnel.com officiel</div></div>
+      <div class="vst"><div class="vstv">2024 m</div><div class="vstl">Départ</div></div>
+    </div>
+    <div class="prof">
+      <div class="prof-lbl">Profil — route fermée, pente régulière, aucun passage difficile</div>
+      <div class="prof-bars">
+        <div class="pb" style="height:38%;background:var(--d1);opacity:.72"></div>
+        <div class="pb" style="height:52%;background:var(--d1);opacity:.78"></div>
+        <div class="pb" style="height:65%;background:var(--d1);opacity:.83"></div>
+        <div class="pb" style="height:78%;background:var(--d1);opacity:.88"></div>
+        <div class="pb" style="height:90%;background:var(--d1);opacity:.93"></div>
+        <div class="pb" style="height:100%;background:var(--d1)"></div>
+      </div>
+      <div class="prof-pts">
+        <div class="pp">Pont<br>Lariane<br>2024m</div>
+        <div class="pp">Lacets<br>route</div>
+        <div class="pp">Bergerie<br>Tioures</div>
+        <div class="pp">Alpages<br>ouverts</div>
+        <div class="pp">Vue<br>Pain de<br>Sucre</div>
+        <div class="pp">Refuge<br>Agnel<br>2580m</div>
+      </div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.719,6.904],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(90,158,106,.22);color:var(--d1)">P</div><div class="sconn" style="background:var(--d1)"></div></div>
+        <div class="si">
+          <div class="sname">Pont de Lariane · Parking · Départ</div>
+          <div class="sdetail">Route du Col Agnel fermée à la circulation depuis ce point. Sentier sécurisé sur route asphaltée. Fontaine au départ. Chargez les téléphones en vallée — le refuge est limité en énergie !</div>
+          <div class="salt">2 024 m · 30 min depuis Guillestre</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.712,6.933],15);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(90,158,106,.2);color:var(--d1)">🐑</div><div class="sconn" style="background:var(--d1)"></div></div>
+        <div class="si">
+          <div class="sname">Bergerie des Tioures</div>
+          <div class="sdetail">Troupeau de moutons, berger et chiens de berger. Les enfants vont adorer. Bonne pause à mi-chemin.</div>
+          <div class="salt">~2 300 m · 1h30</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.691,6.972],14);act(this)">
+        <div class="sv"><div class="sico sq" style="background:var(--d1)">🏠</div></div>
+        <div class="si">
+          <div class="sname">Refuge Agnel ⭐ — Nuit 1</div>
+          <div class="sdetail">Vue sur le Pain de Sucre (3208m) et le Mont Viso. "Porcelaine raffinée, repas généreux". CB acceptée. Dortoirs 6 pers. Coucher de soleil sur les Écrins depuis la terrasse.</div>
+          <div class="salt">2 580 m · ⭐ 4.0 · 435 avis · 80 places</div>
+          <div class="rbdg" style="background:rgba(90,158,106,.15);color:var(--d1)">🛏 Nuit 1 · 60€ DP / 42€ enfant (&lt;12 ans)</div>
+          <div class="rbdg" style="background:rgba(90,158,106,.1);color:var(--d1)">📞 +33 6 60 79 83 90 / +33 6 44 33 28 22</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:85%;background:var(--d1)"></div></div>
+      <div class="km-cap">😊 Facile · Route asphaltée plate et progressive · Pas de passage difficile · Arrivée ~13h</div>
+    </div>
+    <div class="tip" style="border-color:var(--d1);background:rgba(90,158,106,.05)">💡 Le Pont de Lariane est à 2024m — vous partez déjà en altitude, ce qui fait que la montée (+550m) reste très raisonnable. La route fermée est un sentier parfait pour les enfants : pas de piège, pas de précipice, balisage naturel.</div>
+  </div>
+
+  <!-- JOUR 2 -->
+  <div class="db" id="db2">
+    <div class="dh" onclick="fly([44.720,6.990],12)">
+      <div class="dnum" style="background:rgba(201,125,46,.22);color:var(--d2)">2</div>
+      <div class="dn">
+        <div class="dname">Refuge Agnel → Col Vieux → Lacs → L'Échalp</div>
+        <div class="ddate">8 août · La journée spectaculaire · la plus longue</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">10,9 km</div><div class="vstl">Distance</div></div>
+      <div class="vst"><div class="vstv">+226 / -1100m</div><div class="vstl">Dénivelé</div></div>
+      <div class="vst"><div class="vstv">4h–4h30</div><div class="vstl">Durée</div><div class="vsrc">✓ AllTrails GR58 étape 3</div></div>
+    </div>
+    <div class="prof">
+      <div class="prof-lbl">Profil — montée courte puis longue descente</div>
+      <div class="prof-bars">
+        <div class="pb" style="height:90%;background:var(--d2);opacity:.85"></div>
+        <div class="pb" style="height:100%;background:var(--d2)"></div>
+        <div class="pb" style="height:78%;background:var(--d2);opacity:.85"></div>
+        <div class="pb" style="height:62%;background:var(--d2);opacity:.80"></div>
+        <div class="pb" style="height:45%;background:var(--d2);opacity:.75"></div>
+        <div class="pb" style="height:30%;background:var(--d2);opacity:.68"></div>
+      </div>
+      <div class="prof-pts">
+        <div class="pp">Agnel<br>2580m</div>
+        <div class="pp">Col<br>Vieux<br>2806m ★</div>
+        <div class="pp">Lac<br>Foréant<br>2240m</div>
+        <div class="pp">Lac<br>Égorgeou<br>2100m</div>
+        <div class="pp">Descente<br>mélèzes</div>
+        <div class="pp">L'Échalp<br>1706m</div>
+      </div>
+    </div>
+    <div class="warn-box">
+      <strong>⚠️ Point d'attention J2 pour le 6 ans</strong> — 10,9 km avec -1100m de descente c'est la journée la plus longue. Départ impératif à <strong>8h</strong>. La descente après les lacs est "délicate — attention où vous mettez les pieds" (avis AllTrails). Les genoux des enfants et des adultes seront sollicités. Prévoyez des bâtons de marche et des pauses régulières.
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.691,6.972],13);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.22);color:var(--d2)">D</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si"><div class="sname">Départ Refuge Agnel</div><div class="sdetail">8h00 · Petit-déjeuner 7h · GR58 direction Col Vieux. 2 km de montée assez sèche au départ.</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.700,6.985],15);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.3);color:var(--d2)">▲</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si">
+          <div class="sname">Col Vieux ⭐ POINT HAUT</div>
+          <div class="sdetail">"Magnifique belvédère — panorama royal sur le vallon de Bouchouse, le Pain de Sucre et le Mont Viso." Vue sur les lacs en contrebas. Moment inoubliable.</div>
+          <div class="salt">2 806 m · 2h depuis Agnel · Coupe-vent</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.715,6.988],15);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.2);color:var(--d2)">∿</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si">
+          <div class="sname">Lac Foréant ⭐⭐</div>
+          <div class="sdetail">"Un des plus grands lacs du Queyras, 4 hectares." Eaux transparentes, cadre minéral et vert spectaculaire. Grande pause pique-nique ici — les enfants adorent.</div>
+          <div class="salt">2 240 m · 3h · Pause longue recommandée</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.730,6.988],15);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(201,125,46,.18);color:var(--d2)">∿</div><div class="sconn" style="background:var(--d2)"></div></div>
+        <div class="si"><div class="sname">Lac Égorgeou</div><div class="sdetail">Deuxième lac de la descente. "Quelques sources longent le trajet — eau très fraîche." Torrent de Bouchouse idéal pour la trempette des pieds !</div><div class="salt">2 100 m · 3h30</div></div>
+      </div>
+      <div class="stop" onclick="fly([44.757,6.993],14);act(this)">
+        <div class="sv"><div class="sico sq" style="background:var(--d2)">🏠</div></div>
+        <div class="si">
+          <div class="sname">Gîte 7 Degrés Est — L'Échalp · Nuit 2</div>
+          <div class="sdetail">Geraldine & Laurent. "Masterclass d'accueil." Ambiance chaleureuse, cuisine végé-friendly exceptionnelle, dortoirs confortables. Soirée tranquille au bord du Guil.</div>
+          <div class="salt">1 706 m · ⭐ 4.7 · Hameau de L'Échalp</div>
+          <div class="rbdg" style="background:rgba(201,125,46,.15);color:var(--d2)">🛏 Nuit 2 · Coup de cœur du trek</div>
+          <div class="rbdg" style="background:rgba(201,125,46,.1);color:var(--d2)">📞 +33 4 92 46 82 07</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:45%;background:var(--d2)"></div></div>
+      <div class="km-cap">😅 La plus longue · Départ 8h impératif · Bâtons de marche recommandés · Mais les lacs valent TOUT</div>
+    </div>
+    <div class="tip" style="border-color:var(--d2);background:rgba(201,125,46,.05)">🏔 Le Col Vieux est souvent cité comme la plus belle vue du GR58 — "on pointe juste sa tête et on découvre la beauté du vallon. Grandiose." Les deux lacs en descente sont magiques. Cette journée est LA journée du trek — difficile mais inoubliable.</div>
+  </div>
+
+  <!-- JOUR 3 -->
+  <div class="db" id="db3">
+    <div class="dh" onclick="fly([44.780,6.960],12)">
+      <div class="dnum" style="background:rgba(91,143,168,.22);color:var(--d3)">3</div>
+      <div class="dn">
+        <div class="dname">L'Échalp → Abriès (marche ou navette) → Retour voiture</div>
+        <div class="ddate">9 août · Fin tranquille · cap Italie !</div>
+      </div>
+    </div>
+    <div class="vstats">
+      <div class="vst"><div class="vstv">~5 km</div><div class="vstl">À pied vallée</div></div>
+      <div class="vst"><div class="vstv">ou 8 min</div><div class="vstl">Navette bus</div><div class="vsrc">✓ Escartons officiels</div></div>
+      <div class="vst"><div class="vstv">Plat</div><div class="vstl">Dénivelé</div></div>
+    </div>
+    <div class="bus-box">
+      <div class="bus-icon">🚌</div>
+      <div class="bus-text"><strong>Navette des Escartons officielle</strong> — dessert L'Échalp → Ristolas → Abriès. Fonctionne en été. Vérifiez les horaires 2026 sur <strong>lequeyras.com</strong> ou OT Guillestre. Environ 8 min de trajet. Puis Abriès → Molines → Pont de Lariane en taxi (~20 min, ~25€) ou en bus Escartons jusqu'à Molines puis marche courte.</div>
+    </div>
+    <div class="stops">
+      <div class="stop" onclick="fly([44.757,6.993],13);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.22);color:var(--d3)">D</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si">
+          <div class="sname">Départ L'Échalp</div>
+          <div class="sdetail">Option A : navette Escartons (vérifier horaires) · Option B : 5 km à pied sur sentier de vallée ombragé et facile le long du Guil. "Balade ombragée, sans difficulté, très agréable en famille."</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.795,6.926],13);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.22);color:var(--d3)">🏘</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si">
+          <div class="sname">Abriès · Village</div>
+          <div class="sdetail">Café, restaurant, épicerie. Célébration méritée ! OT Abriès peut vous aider pour le taxi retour vers Molines/Pont de Lariane.</div>
+          <div class="salt">1 550 m · OT : +33 4 92 45 74 07</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.719,6.904],13);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.22);color:var(--d3)">🚗</div><div class="sconn" style="background:var(--d3)"></div></div>
+        <div class="si">
+          <div class="sname">🚕 Taxi/Navette → Pont de Lariane</div>
+          <div class="sdetail">Abriès → Molines (~10 min bus Escartons) puis Molines → Pont de Lariane (~15 min). Ou taxi direct depuis Abriès (~25€). Voiture récupérée !</div>
+        </div>
+      </div>
+      <div class="stop" onclick="fly([44.719,6.904],14);act(this)">
+        <div class="sv"><div class="sico" style="background:rgba(91,143,168,.3);color:var(--d3)">🏁</div></div>
+        <div class="si">
+          <div class="sname">Pont de Lariane · Fin du Trek ✓</div>
+          <div class="sdetail">Voiture récupérée. Arrivée ~11h-12h. Guillestre → Mont-Cenis → Lac d'Orta : 2h45. Déjeuner en Italie !</div>
+          <div class="salt">2 024 m</div>
+          <div class="rbdg" style="background:rgba(192,69,58,.15);color:#c0453a">🇮🇹 Lac d'Orta à 2h45 !</div>
+        </div>
+      </div>
+    </div>
+    <div class="km">
+      <div class="km-lbl">Niveau enfants 6 ans</div>
+      <div class="km-bar"><div class="km-fill" style="width:96%;background:var(--d3)"></div></div>
+      <div class="km-cap">😁 Facile ou navette · Vallée ombragée · Arrivée à Abriès = café + croissant mérité !</div>
+    </div>
+    <div class="tip" style="border-color:var(--d3);background:rgba(91,143,168,.05)">🎉 Trek terminé ! 2 nuits · 3 jours · ~23 km · Point haut 2806m au Col Vieux · Lacs Foréant & Égorgeou · Pain de Sucre au coucher de soleil. Les enfants vous racontent ça à la rentrée. 🇮🇹 Et l'Italie vous attend dans 3h !</div>
+  </div>
+
+</div>
+<div id="map"></div>
+</div>
+
+<div class="bbar">
+  <div class="bs"><div class="bsv">~23 km</div><div class="bsl">Total vérifié</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">+776 m</div><div class="bsl">D+ cumulé</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">2 806 m</div><div class="bsl">Point haut</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv">2 nuits</div><div class="bsl">Agnel + 7°Est</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv" style="color:var(--d2)">J2 · 4h30 ⚠️</div><div class="bsl">Journée longue</div></div>
+  <div class="bdiv"></div>
+  <div class="bs"><div class="bsv" style="color:var(--bus)">🚌 Navette J3</div><div class="bsl">Escartons</div></div>
+  <div class="alert">⚡ Réservez · Agnel +33 6 60 79 83 90 · 7 Degrés Est +33 4 92 46 82 07</div>
+</div>
+
+<script>
+const map=L.map('map',{center:[44.730,6.955],zoom:12});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:18}).addTo(map);
+const C={d1:'#5a9e6a',d2:'#c97d2e',d3:'#5b8fa8',bus:'#e8b84b'};
+
+// Tracés vérifiés
+// J1 : Pont Lariane → Agnel via route du col
+const r1=[[44.719,6.904],[44.716,6.912],[44.712,6.920],[44.710,6.928],[44.707,6.938],[44.703,6.948],[44.699,6.958],[44.695,6.965],[44.691,6.972]];
+// J2 : Agnel → Col Vieux → Lacs → L'Echalp
+const r2=[[44.691,6.972],[44.694,6.979],[44.697,6.983],[44.700,6.985],[44.705,6.988],[44.710,6.988],[44.715,6.988],[44.722,6.990],[44.732,6.990],[44.742,6.991],[44.750,6.992],[44.757,6.993]];
+// J3 : L'Echalp → Abriès (vallée)
+const r3=[[44.757,6.993],[44.763,6.982],[44.770,6.970],[44.778,6.958],[44.784,6.945],[44.789,6.934],[44.795,6.926]];
+// Navette/taxi retour
+const rNav=[[44.795,6.926],[44.790,6.922],[44.783,6.916],[44.775,6.912],[44.767,6.908],[44.756,6.905],[44.748,6.904],[44.738,6.904],[44.728,6.904],[44.719,6.904]];
+
+const routes={
+  1:L.polyline(r1,{color:C.d1,weight:3.5,opacity:.9}),
+  2:L.polyline(r2,{color:C.d2,weight:3.5,opacity:.9}),
+  3:L.polyline(r3,{color:C.d3,weight:3.5,opacity:.9}),
+  nav:L.polyline(rNav,{color:C.bus,weight:2,opacity:.6,dashArray:'8 5'}),
+};
+Object.values(routes).forEach(r=>r.addTo(map));
+const dayOn={1:true,2:true,3:true};
+
+function ico(em,col,sq=false,sz=26){
+  return L.divIcon({html:`<div style="width:${sz}px;height:${sz}px;background:${col};border-radius:${sq?'6px':'50%'};border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:${sz*.42}px;box-shadow:0 2px 8px rgba(0,0,0,.55);cursor:pointer;">${em}</div>`,className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+}
+function mk(tag,col,name,sub,bdg='',bs='',src=''){
+  return `<div class="pop"><div class="ptag" style="color:${col}">${tag}</div><div class="pname">${name}</div><div class="psub">${sub}</div>${bdg?`<div class="pbdg" style="${bs}">${bdg}</div>`:''}<div class="psrc">${src}</div></div>`;
+}
+
+const pts=[
+  {lat:44.719,lng:6.904,day:1,icon:ico('P',C.d1,false,26),pop:mk('Départ & Retour',C.d1,'Pont de Lariane · 2024m','Parking voiture ici. Route du col Agnel fermée depuis ce point. Fontaine au départ. Chargez téléphones en vallée !','2024m · Parking gratuit',`background:rgba(90,158,106,.15);color:${C.d1}`,'✓ Source : refugeagnel.com')},
+  {lat:44.712,lng:6.920,day:1,icon:ico('🐑',C.d1,false,22),pop:mk('Jour 1',C.d1,'Bergerie des Tioures','~2300m · Troupeau, berger, chiens. Pause nature parfaite à mi-montée.')},
+  {lat:44.691,lng:6.972,day:1,icon:ico('🏠',C.d1,true,30),pop:mk('Nuit 1',C.d1,'Refuge Agnel · 2580m','⭐4.0 · 80 places · "Porcelaine raffinée, vue incroyable." Pain de Sucre au coucher de soleil. CB OK.','📞 +33 6 60 79 83 90',`background:rgba(90,158,106,.15);color:${C.d1}`,'✓ 60€ DP / 42€ enfant (&lt;12)')},
+  {lat:44.700,lng:6.985,day:2,icon:ico('▲',C.d2,false,26),pop:mk('Jour 2 · POINT HAUT',C.d2,'Col Vieux ⭐ · 2806m','"Magnifique belvédère — panorama royal sur le vallon de Bouchouse et le Mont Viso. Grandiose."','','','✓ Source : envie-de-queyras.com')},
+  {lat:44.715,lng:6.988,day:2,icon:ico('∿',C.d2,false,24),pop:mk('Jour 2 ⭐⭐',C.d2,'Lac Foréant · 2240m','Un des plus grands lacs du Queyras (4 ha). Eaux transparentes, paysage minéral spectaculaire. Grande pause pique-nique.','Baignade pieds possible !',`background:rgba(201,125,46,.15);color:${C.d2}`,'')},
+  {lat:44.730,lng:6.988,day:2,icon:ico('∿',C.d2,false,22),pop:mk('Jour 2',C.d2,'Lac Égorgeou · 2100m','Deuxième lac de la descente. Torrent de Bouchouse — trempette des pieds garantie. Sources d\'eau fraîche.')},
+  {lat:44.757,lng:6.993,day:2,icon:ico('🏠',C.d2,true,30),pop:mk('Nuit 2',C.d2,'Gîte 7 Degrés Est · L\'Échalp · 1706m','⭐4.7 · Geraldine & Laurent. "Masterclass d\'accueil." Cuisine exceptionnelle, ambiance chaleureuse.','📞 +33 4 92 46 82 07',`background:rgba(201,125,46,.15);color:${C.d2}`,'')},
+  {lat:44.795,lng:6.926,day:3,icon:ico('🏘',C.d3,false,24),pop:mk('Jour 3',C.d3,'Abriès · 1550m','Village avec café, restaurant, épicerie. Navette Escartons depuis L\'Échalp (8 min). Puis taxi → Pont de Lariane.','OT : +33 4 92 45 74 07',`background:rgba(91,143,168,.15);color:${C.d3}`,'✓ Navette Escartons confirmée')},
+  {lat:44.719,lng:6.904,day:3,icon:ico('🏁',C.d3,false,26),pop:mk('Fin · 9 août',C.d3,'Pont de Lariane · Voiture ✓','Trek terminé ! Guillestre → Mont-Cenis → Lac d\'Orta : 2h45. Déjeuner en Italie !','🇮🇹 Italie à 2h45',`background:rgba(192,69,58,.15);color:#c0453a`,'')},
+];
+
+const mkrs=[];
+pts.forEach(p=>{
+  const m=L.marker([p.lat,p.lng],{icon:p.icon}).addTo(map).bindPopup(p.pop,{maxWidth:235,offset:[0,-8]});
+  mkrs.push({m,day:p.day});
+});
+
+function fly(c,z){map.flyTo(c,z,{duration:.9,easeLinearity:.3});}
+function act(el){document.querySelectorAll('.stop').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+function tog(d,el){
+  dayOn[d]=!dayOn[d];
+  el.classList.toggle('on',dayOn[d]);
+  document.getElementById('db'+d)?.classList.toggle('hidden',!dayOn[d]);
+  const rkeys=d===1?['1']:d===2?['2']:['3','nav'];
+  rkeys.forEach(k=>{if(routes[k]){dayOn[d]?routes[k].addTo(map):map.removeLayer(routes[k]);}});
+  mkrs.forEach(m=>{if(m.day===d){dayOn[d]?m.m.addTo(map):map.removeLayer(m.m);}});
+}
+
+map.fitBounds([[44.682,6.890],[44.805,7.010]],{padding:[30,30]});
+</script>
+</body>
+</html>
